@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiệm Đồ Chiên - Street Fried Food Stall Tycoon</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Lexend', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+
+        /* Custom Animations */
+        @keyframes pulse-fast {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes fry-bubbles {
+            0% { transform: translateY(0px) scale(0.8); opacity: 0.8; }
+            50% { transform: translateY(-10px) scale(1.2); opacity: 1; }
+            100% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+        }
+
+        .animate-pulse-fast {
+            animation: pulse-fast 0.8s infinite;
+        }
+
+        .bubble {
+            position: absolute;
+            background: rgba(255, 230, 0, 0.6);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: fry-bubbles 1s infinite ease-out;
+        }
+
+        /* Frying Meter styling */
+        .gauge-container {
+            background: linear-gradient(to right, #eab308 0%, #eab308 59%, #22c55e 60%, #22c55e 90%, #ef4444 91%, #ef4444 100%);
+        }
+
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden">
+
+    <!-- Top Header Bar -->
+    <header class="bg-slate-900 border-b border-amber-600/30 px-4 py-2 sticky top-0 z-40 shadow-lg">
+        <div class="max-w-6xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center space-x-3">
+                <div class="bg-gradient-to-tr from-amber-600 to-yellow-400 p-2 rounded-xl text-slate-950 font-black shadow-md">
+                    <i class="fa-solid fa-utensils text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-amber-400 text-lg leading-tight">TIỆM ĐỒ CHIÊN</h1>
+                    <p class="text-xs text-slate-400" id="current-chapter-title">Chương 1: Xe đẩy vỉa hè</p>
+                </div>
+            </div>
+
+            <!-- Stats Bar -->
+            <div class="flex items-center space-x-4 bg-slate-800/90 px-4 py-1.5 rounded-full border border-slate-700 text-sm">
+                <div class="flex items-center space-x-1">
+                    <span class="text-amber-400"><i class="fa-solid fa-calendar-day"></i></span>
+                    <span id="stat-day" class="font-bold">Ngày 1</span>
+                </div>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <div class="flex items-center space-x-1">
+                    <span class="text-emerald-400"><i class="fa-solid fa-wallet"></i></span>
+                    <span id="stat-money" class="font-bold text-emerald-400">120.000đ</span>
+                </div>
+                <div class="h-4 w-px bg-slate-700"></div>
+                <div class="flex items-center space-x-1">
+                    <span class="text-yellow-400"><i class="fa-solid fa-star"></i></span>
+                    <span id="stat-rep" class="font-bold">4.0</span>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center space-x-2">
+                <button onclick="openSaveModal()" class="bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center space-x-1 transition">
+                    <i class="fa-solid fa-floppy-disk text-amber-400"></i>
+                    <span>Lưu / Tải</span>
+                </button>
+                <button onclick="openLoanModal()" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs flex items-center space-x-1 shadow transition">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                    <span>Vay Vốn</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN GAME CONTAINER -->
+    <main class="max-w-6xl w-full mx-auto p-3 sm:p-4 flex-grow flex flex-col justify-center">
+
+        <!-- PHASE 1: PREPARATION & FORECAST SCREEN -->
+        <div id="prep-screen" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <!-- Left Panel: Daily Forecast & Status -->
+            <div class="glass-panel p-5 rounded-2xl flex flex-col justify-between border-l-4 border-amber-500 shadow-xl">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="bg-amber-500/20 text-amber-400 text-xs px-2.5 py-1 rounded-md font-bold uppercase tracking-wider">Dự Báo Thị Trường</span>
+                        <span id="forecast-weather-icon" class="text-2xl">☀️</span>
+                    </div>
+
+                    <h2 class="text-xl font-extrabold text-slate-100 mb-1" id="forecast-date-title">NGÀY 1</h2>
+                    <p class="text-slate-400 text-xs mb-4" id="forecast-event-desc">Thời tiết đẹp, khách hàng ra đường đông đúc.</p>
+
+                    <div class="space-y-3 bg-slate-900/80 p-3.5 rounded-xl border border-slate-800 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400"><i class="fa-solid fa-cloud-sun text-amber-400 mr-2"></i>Thời tiết:</span>
+                            <span id="forecast-weather" class="font-semibold text-amber-300">Nắng đẹp (+10% khách)</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400"><i class="fa-solid fa-users text-blue-400 mr-2"></i>Dự kiến lượng khách:</span>
+                            <span id="forecast-customers" class="font-bold text-emerald-400">18 - 25 khách</span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span class="text-slate-400"><i class="fa-solid fa-tags text-rose-400 mr-2"></i>Giá nguyên liệu:</span>
+                            <span id="forecast-price-modifier" class="font-semibold text-slate-200">Bình thường</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6">
+                    <button onclick="startSalesShift()" class="w-full bg-gradient-to-r from-red-600 to-amber-500 hover:from-red-500 hover:to-amber-400 text-white font-extrabold py-3.5 rounded-xl text-base shadow-lg shadow-amber-900/30 flex items-center justify-center space-x-2 transition transform active:scale-95">
+                        <i class="fa-solid fa-play text-xl"></i>
+                        <span>BẮT ĐẦU BÁN HÀNG (1 PHÚT)</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Center Panel: Ingredient Market (Purchasing) -->
+            <div class="glass-panel p-5 rounded-2xl md:col-span-2 flex flex-col justify-between shadow-xl">
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-lg text-amber-400 flex items-center">
+                            <i class="fa-solid fa-cart-shopping mr-2"></i> Mua Nguyên Liệu Chuẩn Bị
+                        </h3>
+                        <span class="text-xs text-slate-400">*Lưu ý: Nguyên liệu tươi có hạn sử dụng 2 ngày!</span>
+                    </div>
+
+                    <!-- Items Grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4" id="market-items-container">
+                        <!-- Dynamic generated market items here -->
+                    </div>
+                </div>
+
+                <!-- Current Stock Summary -->
+                <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-800">
+                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Kho Hàng Hiện Có:</h4>
+                    <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 text-xs text-center" id="current-stock-pills">
+                        <!-- Dynamic stock summary pills -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 2: ACTIVE 1-MINUTE SALES RUSH SCREEN (WORKSTATION) -->
+        <div id="sales-screen" class="hidden flex-col space-y-4">
+            
+            <!-- Shift Header & Timer Bar -->
+            <div class="glass-panel p-3 rounded-xl flex items-center justify-between border-amber-500/40">
+                <div class="flex items-center space-x-4">
+                    <div class="bg-red-950/80 border border-red-500/50 px-4 py-1.5 rounded-xl flex items-center space-x-2 animate-pulse-fast">
+                        <i class="fa-solid fa-stopwatch text-red-500 text-lg"></i>
+                        <span id="shift-timer" class="font-black text-2xl text-red-400 tracking-wider">01:00</span>
+                    </div>
+                    <div class="hidden sm:flex flex-col text-xs">
+                        <span class="text-slate-400">Doanh thu ca này: <b id="shift-revenue" class="text-emerald-400 font-bold">0đ</b></span>
+                        <span class="text-slate-400">Đã phục vụ: <b id="shift-served-count" class="text-amber-400 font-bold">0 khách</b></span>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <button onclick="earlyCloseShift()" class="bg-red-900/60 hover:bg-red-800 text-red-200 border border-red-700/50 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1 transition">
+                        <i class="fa-solid fa-door-closed"></i>
+                        <span>Dọn Hàng Đóng Cửa Sớm</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Customer Queue Bar & Current Active Customer -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                
+                <!-- Active Customer Dialogue Card -->
+                <div id="customer-card" class="glass-panel p-4 rounded-2xl border-2 border-amber-500/50 flex flex-col justify-between relative overflow-hidden shadow-2xl min-h-[220px]">
+                    <div id="no-customer-msg" class="absolute inset-0 flex items-center justify-center bg-slate-900/90 z-10 text-slate-400 font-medium">
+                        <i class="fa-solid fa-spinner animate-spin mr-2"></i> Khách hàng đang tới...
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center space-x-2">
+                                <span id="cust-avatar" class="text-3xl">🧑‍🎓</span>
+                                <div>
+                                    <h3 id="cust-type" class="font-bold text-amber-300 text-sm">Học Sinh</h3>
+                                    <p id="cust-quote" class="text-xs text-slate-300 italic">"Cho tôi món nhanh với ạ!"</p>
+                                </div>
+                            </div>
+                            <span id="cust-tip-badge" class="bg-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/30">
+                                Hay Bo +10%
+                            </span>
+                        </div>
+
+                        <!-- Speech Bubble Order -->
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-amber-500/30 my-3">
+                            <div class="text-xs text-slate-400 font-semibold mb-1">MÓN ĐANG GỌI:</div>
+                            <div id="cust-order-items" class="flex flex-wrap gap-2 text-sm font-bold text-amber-300">
+                                <!-- Dynamic customer order list -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Patience Meter -->
+                    <div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-slate-400 font-semibold"><i class="fa-solid fa-heart text-rose-500 mr-1"></i>Độ Kiên Nhẫn:</span>
+                            <span id="cust-patience-val" class="font-bold text-rose-400">100%</span>
+                        </div>
+                        <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                            <div id="cust-patience-bar" class="bg-emerald-500 h-full rounded-full transition-all duration-300" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4-STEP PIPELINE WORKSTATION -->
+                <div class="glass-panel p-4 rounded-2xl lg:col-span-2 flex flex-col justify-between space-y-4">
+                    
+                    <!-- WORKSTATION PIPELINE PROGRESS HEADER -->
+                    <div class="grid grid-cols-4 gap-1 text-center text-[10px] sm:text-xs font-bold uppercase tracking-wider">
+                        <div id="step-tab-1" class="py-1.5 px-1 rounded-lg bg-amber-500 text-slate-950 shadow">1. Chọn Món</div>
+                        <div id="step-tab-2" class="py-1.5 px-1 rounded-lg bg-slate-800 text-slate-400">2. Chiên Đồ</div>
+                        <div id="step-tab-3" class="py-1.5 px-1 rounded-lg bg-slate-800 text-slate-400">3. Đóng Gói</div>
+                        <div id="step-tab-4" class="py-1.5 px-1 rounded-lg bg-slate-800 text-slate-400">4. Giao Khách</div>
+                    </div>
+
+                    <!-- PIPELINE STEP 1: SELECT FOOD -->
+                    <div id="pipeline-step-1" class="space-y-2">
+                        <div class="text-xs font-bold text-amber-400 flex justify-between">
+                            <span>BƯỚC 1: BẤM CHỌN MÓN VÀO CHẢO</span>
+                            <span class="text-slate-400 font-normal">Chọn theo đơn khách gọi</span>
+                        </div>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-2" id="food-selector-grid">
+                            <!-- Dynamic food buttons -->
+                        </div>
+                    </div>
+
+                    <!-- PIPELINE STEP 2 & 3: FRYING & PACKAGING AREA -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-800">
+                        
+                        <!-- FRYING STATION -->
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 relative flex flex-col justify-between">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-fire text-orange-500 mr-1"></i>Bếp Chiên Đồ</span>
+                                <span id="stove-upgrade-badge" class="text-[10px] bg-slate-800 text-amber-300 px-2 py-0.5 rounded font-semibold border border-slate-700">Bếp Củi</span>
+                            </div>
+
+                            <!-- Fry Status & Gauge -->
+                            <div class="my-2 space-y-2">
+                                <div id="pan-item-display" class="text-center font-bold text-sm text-slate-300 py-1 bg-slate-950/80 rounded border border-slate-800">
+                                    Chảo trống
+                                </div>
+
+                                <!-- Doneness Gauge Meter -->
+                                <div class="space-y-1">
+                                    <div class="flex justify-between text-[10px] font-bold">
+                                        <span class="text-yellow-400">🟡 Sống (0-59%)</span>
+                                        <span class="text-emerald-400">🟢 Giòn (60-90%)</span>
+                                        <span class="text-red-400">🔴 Cháy (91-100%)</span>
+                                    </div>
+                                    <div class="w-full h-4 rounded-full gauge-container relative overflow-hidden border border-slate-900">
+                                        <div id="fry-gauge-pointer" class="absolute top-0 bottom-0 w-1 bg-white shadow-md transition-all duration-75" style="left: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button id="btn-fry" onclick="fryItemProcess()" disabled class="w-full mt-2 bg-gradient-to-r from-orange-600 to-amber-500 disabled:opacity-40 disabled:cursor-not-allowed hover:from-orange-500 hover:to-amber-400 text-slate-950 font-extrabold py-2 rounded-lg text-sm transition shadow">
+                                🔥 CHIÊN ĐỒ
+                            </button>
+                        </div>
+
+                        <!-- PACKAGING & BASKET STATION -->
+                        <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex flex-col justify-between">
+                            <div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-amber-400"><i class="fa-solid fa-box-archive mr-1"></i>Khay Món Đã Chiên</span>
+                                    <span id="bag-stock-count" class="text-[10px] text-slate-400">Túi giấy: 0</span>
+                                </div>
+
+                                <div id="basket-items-list" class="flex flex-wrap gap-1.5 p-2 bg-slate-950/80 rounded border border-slate-800 min-h-[60px] text-xs">
+                                    <span class="text-slate-500 italic text-[11px]">Chưa có món chín nào...</span>
+                                </div>
+                            </div>
+
+                            <button id="btn-package" onclick="packageOrder()" disabled class="w-full mt-2 bg-gradient-to-r from-blue-600 to-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed hover:from-blue-500 hover:to-indigo-400 text-white font-extrabold py-2 rounded-lg text-sm transition shadow">
+                                🛍️ ĐÓNG GÓI VÀO TÚI
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- PIPELINE STEP 4: SERVE BUTTON -->
+                    <button id="btn-serve" onclick="serveCustomerOrder()" disabled class="w-full bg-gradient-to-r from-emerald-600 to-teal-500 disabled:opacity-40 disabled:cursor-not-allowed hover:from-emerald-500 hover:to-teal-400 text-white font-black py-3 rounded-xl text-base shadow-lg shadow-emerald-950/50 transition transform active:scale-95 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-hand-holding-dollar text-xl"></i>
+                        <span>BƯỚC 4: GIAO MÓN & NHẬN TIỀN</span>
+                    </button>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- PHASE 3: END OF DAY SUMMARY SCREEN -->
+        <div id="summary-screen" class="hidden glass-panel p-6 rounded-2xl max-w-2xl mx-auto border-2 border-amber-500/50 shadow-2xl">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl font-black text-amber-400 tracking-wide uppercase">📊 TỔNG KẾT NGÀY BÁN HÀNG</h2>
+                <p class="text-xs text-slate-400" id="summary-day-subtitle">Báo cáo doanh thu & chi phí Ngày 1</p>
+            </div>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[11px] text-slate-400 block">Khách Phục Vụ</span>
+                    <span id="sum-served" class="text-lg font-bold text-emerald-400">0/0</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[11px] text-slate-400 block">Doanh Thu</span>
+                    <span id="sum-revenue" class="text-lg font-bold text-amber-400">0đ</span>
+                </div>
+                <div class="bg-slate-900/90 p-3 rounded-xl border border-slate-800 text-center">
+                    <span class="text-[11px] text-slate-400 block">Lợi Nhuận Ròng</span>
+                    <span id="sum-profit" class="text-lg font-bold text-teal-400">0đ</span>
+                </div>
+            </div>
+
+            <!-- Detailed Breakdown -->
+            <div class="space-y-2 bg-slate-900/80 p-4 rounded-xl border border-slate-800 text-xs sm:text-sm mb-6">
+                <div class="flex justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400">Chi phí nguyên liệu đã mua:</span>
+                    <span id="sum-cost-ingredients" class="font-bold text-rose-400">-0đ</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400">Tổn thất hỏng/quá hạn:</span>
+                    <span id="sum-spoilage" class="font-bold text-rose-400">-0đ</span>
+                </div>
+                <div class="flex justify-between py-1 border-b border-slate-800">
+                    <span class="text-slate-400">Lãi vay phải trả hôm nay:</span>
+                    <span id="sum-loan-interest" class="font-bold text-rose-400">-0đ</span>
+                </div>
+                <div class="flex justify-between py-1 pt-2 font-bold text-base">
+                    <span class="text-slate-200">Đánh giá Uy tín tiệm:</span>
+                    <span id="sum-rep-change" class="text-amber-400">4.0 ⭐ (+0.1)</span>
+                </div>
+            </div>
+
+            <!-- Top Selling & Alerts -->
+            <div class="bg-amber-950/30 border border-amber-600/30 p-3.5 rounded-xl mb-6 text-xs space-y-1" id="summary-alerts">
+                <!-- Dynamic alerts -->
+            </div>
+
+            <button onclick="nextDayPrep()" class="w-full bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black py-3.5 rounded-xl text-base shadow-lg transition">
+                SANG NGÀY TIẾP THEO <i class="fa-solid fa-arrow-right ml-2"></i>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- MODAL: LOAN SYSTEM (4 SOURCES) -->
+    <div id="modal-loans" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-2xl max-w-2xl w-full border-amber-500/50 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-amber-400 flex items-center">
+                    <i class="fa-solid fa-building-columns mr-2"></i> Hệ Thống Vay Vốn Kinh Doanh
+                </h3>
+                <button onclick="closeLoanModal()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <p class="text-xs text-slate-300 mb-4 bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                ⚠️ <b class="text-amber-400">Cân nhắc tài chính:</b> Tiền vay giúp nhập hàng & nâng cấp nhanh nhưng áp lực trả lãi hàng ngày rất lớn. Nếu quá hạn Vay nặng lãi sẽ bị siết tài sản bếp!
+            </p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4" id="loans-container">
+                <!-- Dynamic 4 Loan Cards -->
+            </div>
+
+            <div class="bg-slate-900/90 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+                <h4 class="font-bold text-amber-400 uppercase">Khoản Nợ Đang Vay:</h4>
+                <div id="active-loans-list" class="space-y-1 text-slate-300">
+                    <p class="italic text-slate-500">Hiện tại chưa có khoản vay nào.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SAVE / LOAD GAME CODE -->
+    <div id="modal-save" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="glass-panel p-6 rounded-2xl max-w-md w-full border-slate-700 shadow-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-amber-400"><i class="fa-solid fa-floppy-disk mr-2"></i> Quản Lý Dữ Liệu Game</h3>
+                <button onclick="closeSaveModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4 text-xs">
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Mã Game Của Bạn (Save Code Base64):</label>
+                    <textarea id="save-code-input" readonly rows="3" class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-[10px] focus:outline-none select-all"></textarea>
+                    <button onclick="copySaveCode()" class="mt-1 w-full bg-slate-800 hover:bg-slate-700 text-amber-400 font-bold py-1.5 rounded border border-slate-600">
+                        <i class="fa-solid fa-copy mr-1"></i> Sao Chép Mã
+                    </button>
+                </div>
+
+                <div class="border-t border-slate-800 pt-3">
+                    <label class="block text-slate-300 font-semibold mb-1">Nhập Mã Để Tiếp Tục Game Khác:</label>
+                    <textarea id="load-code-input" rows="2" placeholder="Dán mã save code vào đây..." class="w-full bg-slate-900 border border-slate-700 rounded-lg p-2 text-slate-200 font-mono text-[10px] focus:outline-none"></textarea>
+                    <button onclick="loadSaveCode()" class="mt-1 w-full bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold py-2 rounded">
+                        <i class="fa-solid fa-upload mr-1"></i> Tải Tiến Độ Game
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT GAME LOGIC ENGINE -->
+    <script>
+        // --- GAME CONFIGURATION & RECIPES ---
+        const RECIPES = {
+            chuoi: { name: 'Chuối Chiên', icon: '🍌', rawKey: 'chuoi', price: 15000, cookTime: 3 },
+            quay: { name: 'Quẩy Chiên', icon: '🥨', rawKey: 'quay', price: 1000, cookTime: 2 },
+            khoai: { name: 'Bánh Khoai', icon: '🍠', rawKey: 'khoai', price: 12000, cookTime: 4 },
+            ngo: { name: 'Bánh Ngô', icon: '🌽', rawKey: 'ngo', price: 12000, cookTime: 4 },
+            cut: { name: 'Cút Chiên Bơ', icon: '🍗', rawKey: 'cut', price: 25000, cookTime: 5 }
+        };
+
+        const INGREDIENTS = {
+            chuoi: { name: 'Chuối Tươi', unit: 'quả', price: 2000, isFresh: true },
+            quay: { name: 'Bột Quẩy Thô', unit: 'cái', price: 3000, isFresh: true },
+            khoai: { name: 'Khoai Lang', unit: 'củ', price: 2500, isFresh: true },
+            ngo: { name: 'Bắp Ngô', unit: 'bắp', price: 2500, isFresh: true },
+            cut: { name: 'Chim Cút', unit: 'con', price: 8000, isFresh: true },
+            bot: { name: 'Bột Chiên', unit: 'kg', price: 15000, isFresh: false },
+            dau: { name: 'Dầu Ăn', unit: 'lít', price: 25000, isFresh: false },
+            tui: { name: 'Túi Giấy', unit: 'cái', price: 500, isFresh: false }
+        };
+
+        const STOVES = [
+            { name: 'Bếp Củi', speed: 1.0, burnMult: 1.2 },
+            { name: 'Bếp Gas', speed: 1.3, burnMult: 1.0 },
+            { name: 'Bếp Đôi', speed: 1.6, burnMult: 0.8 },
+            { name: 'Bếp Công Nghiệp', speed: 2.0, burnMult: 0.5 }
+        ];
+
+        const LOAN_SOURCES = [
+            { id: 'family', name: '👨‍👩‍👧 Người Thân', rate: 0.01, max: 80000, term: 12, minRep: 0, desc: 'Dễ vay, lãi cực thấp' },
+            { id: 'friends', name: '🤝 Bạn Bè', rate: 0.025, max: 120000, term: 10, minRep: 0, desc: 'Dễ tiếp cận hơn ngân hàng' },
+            { id: 'bank', name: '🏦 Ngân Hàng', rate: 0.015, max: 250000, term: 18, minRep: 3.7, desc: 'Yêu cầu Uy tín >= 3.7⭐' },
+            { id: 'shark', name: '💸 Vay Nặng Lãi', rate: 0.08, max: 180000, term: 5, minRep: 0, desc: 'Lãi rất cao, quá hạn bị phạt nặng' }
+        ];
+
+        // --- GAME STATE ---
+        let gameState = {
+            day: 1,
+            money: 120000,
+            reputation: 4.0,
+            chapter: 1,
+            stoveLevel: 0,
+            inventory: { chuoi: 10, quay: 10, khoai: 5, ngo: 5, cut: 0, bot: 2, dau: 2, tui: 20 },
+            inventoryFreshness: {}, // tracks day bought
+            activeLoans: [],
+            dailyStats: { served: 0, totalCustomers: 0, revenue: 0, ingredientCost: 0, spoilage: 0 }
+        };
+
+        let shiftTimer = null;
+        let shiftTimeLeft = 60; // 1 Minute
+        let activeCustomer = null;
+        let fryingItem = null; // { recipeKey, doneness: 0-100 }
+        let fryingInterval = null;
+        let cookedBasket = []; // array of cooked food items
+        let isShiftActive = false;
+
+        window.onload = function() {
+            loadLocalProgress();
+            renderPrepScreen();
+            updateHUD();
+        };
+
+        function formatMoney(amount) {
+            return new Intl.NumberFormat('vi-VN').format(Math.round(amount)) + 'đ';
+        }
+
+        function updateHUD() {
+            document.getElementById('stat-day').innerText = `Ngày ${gameState.day}`;
+            document.getElementById('stat-money').innerText = formatMoney(gameState.money);
+            document.getElementById('stat-rep').innerText = gameState.reputation.toFixed(1);
+            document.getElementById('current-chapter-title').innerText = `Chương ${gameState.chapter}: Xe đẩy vỉa hè`;
+        }
+
+        // --- PREPARATION & MARKET PHASE ---
+        function renderPrepScreen() {
+            document.getElementById('prep-screen').classList.remove('hidden');
+            document.getElementById('sales-screen').classList.add('hidden');
+            document.getElementById('summary-screen').classList.add('hidden');
+
+            // Render Forecast
+            const forecastCust = 18 + Math.floor(Math.random() * 10) + Math.round(gameState.reputation * 2);
+            document.getElementById('forecast-date-title').innerText = `NGÀY ${gameState.day}`;
+            document.getElementById('forecast-customers').innerText = `${forecastCust - 3} - ${forecastCust + 5} khách`;
+
+            // Render Market Items
+            const marketContainer = document.getElementById('market-items-container');
+            marketContainer.innerHTML = '';
+
+            for (let [key, item] of Object.entries(INGREDIENTS)) {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/90 border border-slate-800 p-2.5 rounded-xl flex flex-col justify-between';
+                card.innerHTML = `
+                    <div>
+                        <div class="font-bold text-xs text-amber-300 mb-0.5">${item.name}</div>
+                        <div class="text-[10px] text-slate-400">${formatMoney(item.price)} / ${item.unit}</div>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between">
+                        <button onclick="buyIngredient('${key}', 1)" class="bg-amber-600 hover:bg-amber-500 text-slate-950 font-bold px-2 py-1 rounded text-[11px]">
+                            +1
+                        </button>
+                        <button onclick="buyIngredient('${key}', 5)" class="bg-amber-700 hover:bg-amber-600 text-slate-100 font-bold px-2 py-1 rounded text-[11px]">
+                            +5
+                        </button>
+                    </div>
+                `;
+                marketContainer.appendChild(card);
+            }
+
+            // Render Stock Pills
+            renderStockPills();
+        }
+
+        function renderStockPills() {
+            const stockContainer = document.getElementById('current-stock-pills');
+            stockContainer.innerHTML = '';
+
+            for (let [key, item] of Object.entries(INGREDIENTS)) {
+                const qty = gameState.inventory[key] || 0;
+                const pill = document.createElement('div');
+                pill.className = 'bg-slate-950 p-1.5 rounded-lg border border-slate-800';
+                pill.innerHTML = `<span class="text-slate-400 block">${item.name}</span><b class="text-amber-400">${qty}</b> ${item.unit}`;
+                stockContainer.appendChild(pill);
+            }
+        }
+
+        function buyIngredient(key, amount) {
+            const item = INGREDIENTS[key];
+            const cost = item.price * amount;
+
+            if (gameState.money >= cost) {
+                gameState.money -= cost;
+                gameState.inventory[key] = (gameState.inventory[key] || 0) + amount;
+                gameState.dailyStats.ingredientCost += cost;
+                
+                if (item.isFresh) {
+                    if (!gameState.inventoryFreshness[key]) gameState.inventoryFreshness[key] = [];
+                    for(let i=0; i<amount; i++) gameState.inventoryFreshness[key].push(gameState.day);
+                }
+
+                updateHUD();
+                renderStockPills();
+            } else {
+                alert("Không đủ tiền mặt để mua thêm nguyên liệu!");
+            }
+        }
+
+        function startSalesShift() {
+            // Check essential ingredients
+            if ((gameState.inventory.tui || 0) < 1 || (gameState.inventory.dau || 0) < 1) {
+                alert("Bạn cần có ít nhất Dầu Ăn và Túi Giấy để bắt đầu chiên hàng!");
+                return;
+            }
+
+            document.getElementById('prep-screen').classList.add('hidden');
+            document.getElementById('sales-screen').classList.remove('hidden');
+            document.getElementById('sales-screen').classList.add('flex');
+
+            isShiftActive = true;
+            shiftTimeLeft = 60; // 1 minute shift
+            cookedBasket = [];
+            fryingItem = null;
+            gameState.dailyStats.served = 0;
+            gameState.dailyStats.revenue = 0;
+
+            renderFoodSelectorGrid();
+            updateBasketDisplay();
+            spawnNextCustomer();
+
+            // Timer Loop
+            shiftTimer = setInterval(() => {
+                shiftTimeLeft--;
+                const min = Math.floor(shiftTimeLeft / 60);
+                const sec = shiftTimeLeft % 60;
+                document.getElementById('shift-timer').innerText = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+
+                // Customer patience decay
+                if (activeCustomer) {
+                    activeCustomer.patience -= activeCustomer.decayRate;
+                    updatePatienceUI();
+
+                    if (activeCustomer.patience <= 0) {
+                        // Customer leaves angry
+                        customerLeavesAngry("Chờ quá lâu nên đã bỏ đi!");
+                    }
+                }
+
+                if (shiftTimeLeft <= 0) {
+                    endShift();
+                }
+            }, 1000);
+        }
+
+        function earlyCloseShift() {
+            if (confirm("Bạn có chắc chắn muốn dọn hàng đóng cửa sớm không?")) {
+                endShift();
+            }
+        }
+
+        function spawnNextCustomer() {
+            document.getElementById('no-customer-msg').classList.add('hidden');
+            
+            const types = [
+                { name: 'Học Sinh', avatar: '🧑‍🎓', patience: 100, decay: 2.5, tip: 1.1, quote: "Cho em đồ chiên nóng giòn với!" },
+                { name: 'Dân Văn Phòng', avatar: '👩‍💼', patience: 80, decay: 4.0, tip: 1.2, quote: "Chiên nhanh giúp tôi kẻo muộn giờ làm!" },
+                { name: 'Shipper', avatar: '🛵', patience: 70, decay: 5.0, tip: 1.0, quote: "Đơn gấp lắm anh chủ ơi!" }
+            ];
+
+            const template = types[Math.floor(Math.random() * types.length)];
+            
+            // Random order items
+            const keys = Object.keys(RECIPES);
+            const numItems = Math.floor(Math.random() * 2) + 1;
+            let orderList = [];
+            for (let i = 0; i < numItems; i++) {
+                orderList.push(keys[Math.floor(Math.random() * keys.length)]);
+            }
+
+            activeCustomer = {
+                type: template.name,
+                avatar: template.avatar,
+                quote: template.quote,
+                patience: template.patience,
+                maxPatience: template.patience,
+                decayRate: template.decay,
+                tipMult: template.tip,
+                order: orderList
+            };
+
+            // Update Customer UI
+            document.getElementById('cust-avatar').innerText = activeCustomer.avatar;
+            document.getElementById('cust-type').innerText = activeCustomer.type;
+            document.getElementById('cust-quote').innerText = `"${activeCustomer.quote}"`;
+
+            const orderContainer = document.getElementById('cust-order-items');
+            orderContainer.innerHTML = '';
+            activeCustomer.order.forEach(itemKey => {
+                const item = RECIPES[itemKey];
+                const badge = document.createElement('span');
+                badge.className = 'bg-amber-950 border border-amber-600/50 px-2 py-0.5 rounded text-xs';
+                badge.innerText = `${item.icon} ${item.name}`;
+                orderContainer.appendChild(badge);
+            });
+
+            updatePatienceUI();
+        }
+
+        function updatePatienceUI() {
+            if (!activeCustomer) return;
+            const pct = Math.max(0, Math.round((activeCustomer.patience / activeCustomer.maxPatience) * 100));
+            document.getElementById('cust-patience-val').innerText = `${pct}%`;
+            const bar = document.getElementById('cust-patience-bar');
+            bar.style.width = `${pct}%`;
+
+            if (pct > 50) bar.className = 'bg-emerald-500 h-full rounded-full transition-all duration-300';
+            else if (pct > 25) bar.className = 'bg-amber-500 h-full rounded-full transition-all duration-300';
+            else bar.className = 'bg-rose-500 h-full rounded-full transition-all duration-300';
+        }
+
+        function customerLeavesAngry(reason) {
+            alert(`🏃 Khách hàng ${activeCustomer.type}: ${reason}`);
+            gameState.reputation = Math.max(1.0, gameState.reputation - 0.1);
+            updateHUD();
+            activeCustomer = null;
+            document.getElementById('no-customer-msg').classList.remove('hidden');
+            setTimeout(spawnNextCustomer, 1500);
+        }
+
+        function renderFoodSelectorGrid() {
+            const grid = document.getElementById('food-selector-grid');
+            grid.innerHTML = '';
+
+            for (let [key, recipe] of Object.entries(RECIPES)) {
+                const stock = gameState.inventory[recipe.rawKey] || 0;
+                const btn = document.createElement('button');
+                btn.className = `p-2 rounded-xl border flex flex-col items-center justify-center text-xs font-bold transition ${
+                    stock > 0 ? 'bg-slate-900 border-amber-500/40 hover:bg-slate-800 text-amber-300' : 'bg-slate-950 border-slate-800 opacity-40 cursor-not-allowed'
+                }`;
+                btn.innerHTML = `<span class="text-xl mb-1">${recipe.icon}</span><span>${recipe.name}</span><span class="text-[10px] text-slate-400">Kho: ${stock}</span>`;
+                btn.onclick = () => selectItemToFry(key);
+                grid.appendChild(btn);
+            }
+        }
+
+        function selectItemToFry(recipeKey) {
+            if (fryingItem) {
+                alert("Bếp đang chiên món khác! Vui lòng hoàn thành hoặc nhấc ra.");
+                return;
+            }
+
+            const recipe = RECIPES[recipeKey];
+            if ((gameState.inventory[recipe.rawKey] || 0) < 1) {
+                alert(`Đã hết nguyên liệu ${recipe.name} trong kho!`);
+                return;
+            }
+
+            // Deduct raw ingredient
+            gameState.inventory[recipe.rawKey]--;
+            renderFoodSelectorGrid();
+
+            fryingItem = {
+                recipeKey: recipeKey,
+                doneness: 0
+            };
+
+            document.getElementById('pan-item-display').innerText = `${recipe.icon} ${recipe.name} (Chưa chín)`;
+            document.getElementById('btn-fry').disabled = false;
+            
+            // Highlight Step 2
+            document.getElementById('step-tab-1').className = 'py-1.5 px-1 rounded-lg bg-slate-800 text-slate-400';
+            document.getElementById('step-tab-2').className = 'py-1.5 px-1 rounded-lg bg-amber-500 text-slate-950 shadow';
+        }
+
+        function fryItemProcess() {
+            if (!fryingItem) return;
+
+            const stove = STOVES[gameState.stoveLevel];
+            fryingItem.doneness += 15 * stove.speed;
+
+            if (fryingItem.doneness > 100) fryingItem.doneness = 100;
+
+            const pointer = document.getElementById('fry-gauge-pointer');
+            pointer.style.left = `${fryingItem.doneness}%`;
+
+            const recipe = RECIPES[fryingItem.recipeKey];
+
+            if (fryingItem.doneness >= 91) {
+                // Burnt!
+                document.getElementById('pan-item-display').innerText = `🔴 ${recipe.name} (BỊ CHÁY ĐEN!)`;
+                alert("🔴 Món ăn đã bị cháy đen! Phải bỏ vào thùng rác.");
+                fryingItem = null;
+                document.getElementById('btn-fry').disabled = true;
+                pointer.style.left = '0%';
+                document.getElementById('pan-item-display').innerText = 'Chảo trống';
+            } else if (fryingItem.doneness >= 60) {
+                // Perfect cooked
+                document.getElementById('pan-item-display').innerText = `🟢 ${recipe.name} (Vàng Giòn - Sẵn sàng!)`;
+                
+                // Auto move to basket when cooked perfectly
+                cookedBasket.push({ ...fryingItem });
+                fryingItem = null;
+                document.getElementById('btn-fry').disabled = true;
+                pointer.style.left = '0%';
+                document.getElementById('pan-item-display').innerText = 'Chảo trống (Đã chuyển ra khay)';
+                
+                updateBasketDisplay();
+            } else {
+                document.getElementById('pan-item-display').innerText = `🟡 ${recipe.name} (Đang chín ${Math.round(fryingItem.doneness)}%)`;
+            }
+        }
+
+        function updateBasketDisplay() {
+            const list = document.getElementById('basket-items-list');
+            list.innerHTML = '';
+
+            document.getElementById('bag-stock-count').innerText = `Túi giấy: ${gameState.inventory.tui || 0}`;
+
+            if (cookedBasket.length === 0) {
+                list.innerHTML = '<span class="text-slate-500 italic text-[11px]">Chưa có món chín nào...</span>';
+                document.getElementById('btn-package').disabled = true;
+                return;
+            }
+
+            cookedBasket.forEach((item, idx) => {
+                const recipe = RECIPES[item.recipeKey];
+                const badge = document.createElement('span');
+                badge.className = 'bg-emerald-950 border border-emerald-500/50 text-emerald-300 px-2 py-1 rounded text-xs flex items-center space-x-1';
+                badge.innerHTML = `<span>${recipe.icon} ${recipe.name}</span>`;
+                list.appendChild(badge);
+            });
+
+            document.getElementById('btn-package').disabled = (gameState.inventory.tui || 0) < 1;
+        }
+
+        function packageOrder() {
+            if ((gameState.inventory.tui || 0) < 1) {
+                alert("Hết túi giấy đóng gói!");
+                return;
+            }
+
+            gameState.inventory.tui--;
+            updateBasketDisplay();
+
+            // Enable Serve Step
+            document.getElementById('btn-serve').disabled = false;
+            document.getElementById('step-tab-3').className = 'py-1.5 px-1 rounded-lg bg-slate-800 text-slate-400';
+            document.getElementById('step-tab-4').className = 'py-1.5 px-1 rounded-lg bg-amber-500 text-slate-950 shadow animate-pulse-fast';
+        }
+
+        function serveCustomerOrder() {
+            if (!activeCustomer) return;
+
+            // Check order match
+            let matched = true;
+            if (cookedBasket.length !== activeCustomer.order.length) matched = false;
+
+            activeCustomer.order.forEach(reqKey => {
+                const foundIdx = cookedBasket.findIndex(i => i.recipeKey === reqKey);
+                if (foundIdx === -1) matched = false;
+            });
+
+            if (!matched) {
+                alert(`😡 Khách hàng ${activeCustomer.type}: "Tôi đâu có gọi đúng các món này!"`);
+                customerLeavesAngry("Giao sai đơn món ăn!");
+            } else {
+                // Success Payment
+                let earnings = 0;
+                activeCustomer.order.forEach(k => earnings += RECIPES[k].price);
+                earnings *= activeCustomer.tipMult;
+
+                gameState.money += earnings;
+                gameState.dailyStats.revenue += earnings;
+                gameState.dailyStats.served++;
+                gameState.reputation = Math.min(5.0, gameState.reputation + 0.05);
+
+                document.getElementById('shift-revenue').innerText = formatMoney(gameState.dailyStats.revenue);
+                document.getElementById('shift-served-count').innerText = `${gameState.dailyStats.served} khách`;
+
+                alert(`💵 Giao hàng thành công! Nhận ${formatMoney(earnings)} + 0.05⭐ Uy tín`);
+                
+                cookedBasket = [];
+                updateBasketDisplay();
+                document.getElementById('btn-serve').disabled = true;
+
+                activeCustomer = null;
+                document.getElementById('no-customer-msg').classList.remove('hidden');
+                setTimeout(spawnNextCustomer, 1000);
+            }
+
+            updateHUD();
+        }
+
+        function endShift() {
+            clearInterval(shiftTimer);
+            isShiftActive = false;
+
+            document.getElementById('sales-screen').classList.add('hidden');
+            document.getElementById('summary-screen').classList.remove('hidden');
+
+            // Calculate Spoilage (Fresh items older than 2 days)
+            let spoilageLoss = 0;
+            for (let [key, dates] of Object.entries(gameState.inventoryFreshness)) {
+                const freshArr = dates.filter(d => (gameState.day - d) <= 2);
+                const expiredCount = dates.length - freshArr.length;
+                if (expiredCount > 0) {
+                    spoilageLoss += expiredCount * INGREDIENTS[key].price;
+                    gameState.inventory[key] = Math.max(0, (gameState.inventory[key] || 0) - expiredCount);
+                }
+                gameState.inventoryFreshness[key] = freshArr;
+            }
+
+            // Calculate Loan Interest
+            let loanInterestTotal = 0;
+            gameState.activeLoans.forEach(loan => {
+                const interest = loan.amount * loan.rate;
+                loanInterestTotal += interest;
+                gameState.money = Math.max(0, gameState.money - interest);
+                loan.daysLeft--;
+            });
+
+            const netProfit = gameState.dailyStats.revenue - gameState.dailyStats.ingredientCost - spoilageLoss - loanInterestTotal;
+
+            document.getElementById('sum-served').innerText = `${gameState.dailyStats.served} khách`;
+            document.getElementById('sum-revenue').innerText = formatMoney(gameState.dailyStats.revenue);
+            document.getElementById('sum-profit').innerText = formatMoney(netProfit);
+            document.getElementById('sum-cost-ingredients').innerText = `-${formatMoney(gameState.dailyStats.ingredientCost)}`;
+            document.getElementById('sum-spoilage').innerText = `-${formatMoney(spoilageLoss)}`;
+            document.getElementById('sum-loan-interest').innerText = `-${formatMoney(loanInterestTotal)}`;
+            document.getElementById('sum-rep-change').innerText = `${gameState.reputation.toFixed(1)} ⭐`;
+
+            saveLocalProgress();
+        }
+
+        function nextDayPrep() {
+            gameState.day++;
+            gameState.dailyStats = { served: 0, totalCustomers: 0, revenue: 0, ingredientCost: 0, spoilage: 0 };
+            updateHUD();
+            renderPrepScreen();
+        }
+
+        function openLoanModal() {
+            document.getElementById('modal-loans').classList.remove('hidden');
+            const container = document.getElementById('loans-container');
+            container.innerHTML = '';
+
+            LOAN_SOURCES.forEach(source => {
+                const card = document.createElement('div');
+                card.className = 'bg-slate-900/90 border border-slate-800 p-3 rounded-xl flex flex-col justify-between text-xs';
+                
+                const canBorrow = gameState.reputation >= source.minRep;
+
+                card.innerHTML = `
+                    <div>
+                        <div class="font-bold text-amber-400 text-sm mb-1">${source.name}</div>
+                        <p class="text-slate-400 mb-2">${source.desc}</p>
+                        <div class="space-y-1 text-slate-300">
+                            <div>Lãi suất: <b class="text-rose-400">${(source.rate*100).toFixed(1)}%/ngày</b></div>
+                            <div>Hạn mức: <b class="text-emerald-400">${formatMoney(source.max)}</b></div>
+                            <div>Thời hạn: <b>${source.term} ngày</b></div>
+                        </div>
+                    </div>
+                    <button onclick="takeLoan('${source.id}')" ${!canBorrow ? 'disabled' : ''} class="mt-3 w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold py-1.5 rounded">
+                        ${canBorrow ? 'VAY NGAY' : 'CHƯA ĐỦ UY TÍN'}
+                    </button>
+                `;
+                container.appendChild(card);
+            });
+
+            // Render Active Loans
+            const activeList = document.getElementById('active-loans-list');
+            activeList.innerHTML = '';
+            if (gameState.activeLoans.length === 0) {
+                activeList.innerHTML = '<p class="italic text-slate-500">Hiện tại chưa có khoản vay nào.</p>';
+            } else {
+                gameState.activeLoans.forEach(loan => {
+                    const item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-slate-950 p-2 rounded border border-slate-800';
+                    item.innerHTML = `
+                        <span>${loan.name}: <b>${formatMoney(loan.amount)}</b> (Lãi: ${formatMoney(loan.amount*loan.rate)}/ngày)</span>
+                        <span class="text-rose-400 font-bold">Còn ${loan.daysLeft} ngày</span>
+                    `;
+                    activeList.appendChild(item);
+                });
+            }
+        }
+
+        function closeLoanModal() {
+            document.getElementById('modal-loans').classList.add('hidden');
+        }
+
+        function takeLoan(sourceId) {
+            const source = LOAN_SOURCES.find(s => s.id === sourceId);
+            if (!source) return;
+
+            gameState.money += source.max;
+            gameState.activeLoans.push({
+                id: source.id,
+                name: source.name,
+                amount: source.max,
+                rate: source.rate,
+                daysLeft: source.term
+            });
+
+            alert(`🎉 Bạn đã nhận khoản vay ${formatMoney(source.max)} từ ${source.name}!`);
+            updateHUD();
+            openLoanModal();
+        }
+
+        function openSaveModal() {
+            document.getElementById('modal-save').classList.remove('hidden');
+            const code = btoa(JSON.stringify(gameState));
+            document.getElementById('save-code-input').value = code;
+        }
+
+        function closeSaveModal() {
+            document.getElementById('modal-save').classList.add('hidden');
+        }
+
+        function copySaveCode() {
+            const input = document.getElementById('save-code-input');
+            input.select();
+            document.execCommand('copy');
+            alert("📋 Đã sao chép Mã Save Code thành công!");
+        }
+
+        function loadSaveCode() {
+            const code = document.getElementById('load-code-input').value.trim();
+            if (!code) return;
+
+            try {
+                const decoded = JSON.parse(atob(code));
+                gameState = decoded;
+                saveLocalProgress();
+                alert("🎉 Khôi phục tiến độ game thành công!");
+                location.reload();
+            } catch (e) {
+                alert("❌ Mã save code không hợp lệ!");
+            }
+        }
+
+        function saveLocalProgress() {
+            localStorage.setItem('tiem_do_chien_save', JSON.stringify(gameState));
+        }
+
+        function loadLocalProgress() {
+            const saved = localStorage.getItem('tiem_do_chien_save');
+            if (saved) {
+                try {
+                    gameState = JSON.parse(saved);
+                } catch(e) {}
+            }
+        }
+    </script>
+</body>
+</html>
